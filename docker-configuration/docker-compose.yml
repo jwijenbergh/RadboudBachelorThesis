@@ -1,0 +1,52 @@
+version: '3'
+
+networks:
+  dns_network:
+    ipam:
+        driver: default
+        config:
+          - subnet: 172.20.0.0/24
+
+services:
+ dnsdist:
+   build: './dnsdist'
+   tty: true
+   volumes:
+     - ./dnsdist/config/dnsdist.conf:/etc/dnsdist/dnsdist.conf:ro
+     - /etc/letsencrypt/:/etc/letsencrypt/:ro
+   ports:
+     - '53:53/tcp'
+     - '53:53/udp'
+     - '443:443/tcp'
+     - '853:853/tcp'
+   networks:
+     dns_network:
+       ipv4_address: 172.20.0.5
+   depends_on:
+     - unbound
+ unbound:
+   build: './unbound'
+   environment:
+     - DO_IPV6=no
+     - DO_IPV4=yes
+     - DO_UDP=yes
+     - DO_TCP=yes
+     - VERBOSITY=0
+     - NUM_THREADS=4
+     - SO_RCVBUFF=0
+     - SO_SNDBUF=0
+     - SO_REUSEPORT=yes
+     - EDNS_BUFFER_SIZE=4096
+     - MSG_CACHE_SIZE=256m
+     - RRSET_CACHE_SIZE=512m
+     - CACHE_MIN_TTL=86400
+     - CACHE_MAX_TTL=86400
+     - CACHE_MAX_NEGATIVE_TTL=86400
+     - HIDE_IDENTITY=no
+     - HIDE_VERSION=no
+     - STATISTICS_INTERVAL=0
+     - STATISTICS_CUMULATIVE=no
+     - EXTENDED_STATISTICS=no
+   networks:
+     dns_network:
+       ipv4_address: 172.20.0.6
